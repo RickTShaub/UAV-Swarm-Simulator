@@ -1,58 +1,133 @@
-
-from enum import Enum
-import numpy as np
-
 """
 This file contains all the constants and parameters of the simulator.
-It comes handy when you want to make one shot simulations, making parameters and constants vary in every
-simulation. For an extensive experimental campaign read the header at src.simulator.
+It comes handy when you want to make one shot simulations, making parameters
+and constants vary in every simulation. For an extensive experimental campaign
+read the header at src.simulator.
 """
 
 # ----------------------------- SIMULATION PARAMS ---------------------------- #
 
-SIM_SEED = 0                # int: seed of this simulation.
-SIM_DURATION = 3000000      # int: steps of simulation. (np.inf)
-SIM_TS_DURATION = 0.150     # float: seconds duration of a step in seconds.
+from dataclasses import dataclass, field
 
-ENV_WIDTH = 1500      # float: meters, width of environment
-ENV_HEIGHT = 1500     # float: meters, height of environment
+# TODO: Get rid of these constants.
+ENV_WIDTH: float = 1500.0
+"""Width of environment in meters"""
 
-N_DRONES = 2          # int: number of drones.
-N_OBSTACLES = 10      # number of random obstacles in the map
-N_GRID_CELLS = 3      # number of cells in the grid
+ENV_HEIGHT: float = 1500.0
+"""Height of environmentin meters"""
 
-# IMPORTANT: coordinates of the drones at the beginning, it can be NONE in that case drone will follow
-# fixed tours determined in FIXED_TOURS_DIR
-INITIAL_DRONE_COORDS = [ENV_WIDTH / 2, ENV_HEIGHT]
 
-DRONE_SPEED = 5               # float: m/s, drone speed.
-DRONE_ANGLE = 0               # degrees (0, 359)
-DRONE_SPEED_INCREMENT = 5     # increment at every key stroke
-DRONE_ANGLE_INCREMENT = 45    # increment at every key stroke
-DRONE_COM_RANGE = 100         # float: meters, communication range of the drones.
-DRONE_SENSING_RANGE = 0       # float: meters, the sensing range of the drones.
-DRONE_MAX_BUFFER_SIZE = 0     # int: max number of packets in the buffer of a drone.
-DRONE_MAX_ENERGY = 100        # int: max energy of a drone.
-DRONE_RADAR_RADIUS = 60       # meters
+@dataclass
+class SimConfig:
+    """
+    Configuration data for simulation
+    """
 
-# base station
-BASE_STATION_COORDS = [ENV_WIDTH / 2, 0]   # coordinates of the base staion
-BASE_STATION_COM_RANGE = 200               # float: meters, communication range of the depot.
+    sim_seed = 0
+    """Seed of this simulation for randomization."""
 
-# map
-PLOT_TRAJECTORY_NEXT_TARGET = True
+    sim_duration: int = 3000000
+    """Number of steps in the simulation."""
 
-# ------------------------------- CONSTANTS ------------------------------- #
+    sim_ts_duration: float = 0.150
+    """Duration of a step in seconds."""
 
-FIXED_TOURS_DIR = "data/tours/"        # str: the path to the drones tours
-HANDCRAFTED_PATH = False
+    env_width: float = ENV_WIDTH
+    """Width of environment in meters"""
 
-PLOT_SIM = True       # bool: whether to plot or not the simulation (set to false for faster experiments)
-WAIT_SIM_STEP = 0     # float >= 0: seconds, pauses the rendering for x seconds
-SKIP_SIM_STEP = 5     # int > 0 : steps, plot the simulation every x steps
-DRAW_SIZE = 700       # int: size of the drawing window
+    env_height: float = ENV_HEIGHT
+    """Height of environmentin meters"""
 
-SAVE_PLOT = False              # bool: whether to save the plots of the simulation or not
-SAVE_PLOT_DIR = "data/plots/"  # string: where to save plots
+    n_drones: int = 2
+    """Number of drones."""
 
-TARGETS_COORDS = [(750, 750)]
+    n_obstacles: int = 10
+    """Number of random obstacles in the map"""
+
+    n_grid_cells: int = 3
+    """Number of cells in the grid."""
+
+    initial_drone_coords: list[int] | None = field(
+        default_factory=lambda: [ENV_WIDTH / 2, ENV_HEIGHT]
+    )
+    """
+    IMPORTANT: coordinates of the drones at the beginning, it can be `None`. 
+    In that case drone will follow fixed tours determined in fixed_tours_dir    
+    """
+
+    drone_speed: float = 5.0
+    "Initial drone speed in m/s."
+
+    drone_angle: float = 0
+    """Angle of the drone in degrees (>= 0.0 <= 360.0)"""
+    drone_speed_increment: float = 5.0
+    """Speed increment at every key stroke in m/s"""
+
+    drone_angle_increment: float = 45.0
+    """Angle in degrees to increment at every key stroke"""
+
+    drone_com_range: float = 100.0
+    """meters, communication range of the drones."""
+
+    drone_sensing_range: float = 0.0
+    """Meters, the sensing range of the drones."""
+
+    drone_max_buffer_size: int = 0
+    """ax number of packets in the buffer of a drone."""
+
+    drone_max_energy: int = 100
+    """Max energy of a drone. I'm not sure of the units. Energy implies Wh,
+    but the default value implies percent."""
+
+    drone_radar_radius: int = 60
+    """ Radar radius in meters"""
+
+    # base station
+    base_station_coords: list[int] = field(
+        default_factory=lambda: [ENV_WIDTH / 2, 0]
+    )
+    """Coordinates of the base staion."""
+
+    base_station_com_range: float = 200
+    """Meters, communication range of the depot."""
+
+    plot_trajectory_next_target: bool = True
+
+    fixed_tours_dir: str = "data/tours/"
+    """The path to the drones tours"""
+
+    handcrafted_path: bool = False
+
+    plot_sim: bool = True
+    """Whether to plot or not the simulation
+    (set to `False` for faster experiments)"""
+
+    wait_sim_step: float = 0
+    """seconds, pauses the rendering for x seconds.
+    Value must be greater than or equal to 0"""
+
+    skip_sim_step: int = 5
+    """steps, plot the simulation every x steps.
+    Value must be greater than 0"""
+
+    draw_size: int = 700
+    """size of the drawing window"""
+
+    save_plot: bool = False
+    """whether to save the plots of the simulation or not"""
+
+    save_plot_dir: str = "data/plots/"
+    """Where to save plots"""
+
+    targets_coords: list[tuple[int, int]] = field(
+        default_factory=lambda: [(750, 750)]
+    )
+    """Target coordinates"""
+
+    def __post_init__(self):
+        if self.skip_sim_step <= 0:
+            raise ValueError("skip_sim_step must be greater than zero")
+        if self.wait_sim_step < 0:
+            raise ValueError(
+                "wait_sim_step must be greater than or equal to zero"
+            )

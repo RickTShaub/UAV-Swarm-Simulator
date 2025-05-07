@@ -7,7 +7,7 @@ from src.utilities.utilities import (
     current_date,
     euclidean_distance,
 )
-import src.utilities.config as config
+from src.utilities.config import SimConfig
 from src.drawing import pp_draw
 
 import numpy as np
@@ -16,57 +16,38 @@ import time
 
 class Simulator:
 
-    def __init__(
-        self,
-        sim_seed=config.SIM_SEED,
-        ts_duration_sec=config.SIM_TS_DURATION,
-        sim_duration_ts=config.SIM_DURATION,
-        n_drones=config.N_DRONES,
-        env_width_meters=config.ENV_WIDTH,
-        env_height_meters=config.ENV_HEIGHT,
-        drone_speed=config.DRONE_SPEED,
-        drone_max_battery=config.DRONE_MAX_ENERGY,
-        drone_max_buffer=config.DRONE_MAX_BUFFER_SIZE,
-        drone_com_range_meters=config.DRONE_COM_RANGE,
-        drone_sen_range_meters=config.DRONE_SENSING_RANGE,
-        drone_radar_range_meters=config.DRONE_RADAR_RADIUS,
-        drone_coo=config.INITIAL_DRONE_COORDS,
-        bs_com_range_meters=config.BASE_STATION_COM_RANGE,
-        bs_coords=config.BASE_STATION_COORDS,
-        n_obstacles=config.N_OBSTACLES,
-        n_grid_cells=config.N_GRID_CELLS,
-        target_coods=config.TARGETS_COORDS,
-    ):
+    def __init__(self, cfg: SimConfig = SimConfig()):
 
         self.cur_step = 0
-        self.sim_seed = sim_seed
-        self.ts_duration_sec = ts_duration_sec
-        self.sim_duration_ts = sim_duration_ts
+        self.sim_seed = cfg.sim_seed
+        self.ts_duration_sec = cfg.sim_ts_duration
+        self.sim_duration_ts = cfg.sim_duration
         self.env_width_meters, self.env_height_meters = (
-            env_width_meters,
-            env_height_meters,
+            cfg.env_width,
+            cfg.env_height,
         )
-        self.n_drones = n_drones
-        self.n_obstacles = n_obstacles
+        self.n_drones = cfg.n_drones
+        self.n_obstacles = cfg.n_obstacles
         self.grid_cell_size = (
             0
-            if n_grid_cells <= 0
-            else int(self.env_width_meters / n_grid_cells)
+            if cfg.n_grid_cells <= 0
+            else int(self.env_width_meters / cfg.n_grid_cells)
         )
 
         # if this coo is not none, then the drones are self driven
-        self.drone_coo = drone_coo
+        self.drone_coo = cfg.initial_drone_coords
         self.selected_drone = None
 
-        self.drone_speed_meters_sec = drone_speed
-        self.drone_max_battery = drone_max_battery
-        self.drone_max_buffer = drone_max_buffer
-        self.drone_com_range_meters = drone_com_range_meters
-        self.drone_sen_range_meters = drone_sen_range_meters
-        self.drone_radar_range_meters = drone_radar_range_meters
-        self.bs_com_range_meters = bs_com_range_meters
-        self.bs_coords = bs_coords
-        self.target_coods = target_coods
+        self.drone_speed_meters_sec = cfg.drone_speed
+        self.drone_max_battery = cfg.drone_max_energy
+        self.drone_max_buffer = cfg.drone_max_buffer_size
+        self.drone_com_range_meters = cfg.drone_com_range
+        self.drone_sen_range_meters = cfg.drone_sensing_range
+        self.drone_radar_range_meters = cfg.drone_radar_radius
+        self.bs_com_range_meters = cfg.drone_com_range
+        self.bs_coords = cfg.base_station_coords
+        self.target_coods = cfg.targets_coords
+        self._config = cfg
 
         # create the world entites
         self.__set_randomness()
@@ -89,26 +70,26 @@ class Simulator:
         """Moves the drones freely."""
 
         if key_pressed in ["a", "A"]:  # decrease angle
-            self.selected_drone.angle -= config.DRONE_ANGLE_INCREMENT
+            self.selected_drone.angle -= self._config.drone_angle_increment
             self.selected_drone.angle = self.selected_drone.angle % 360
 
         elif key_pressed in ["d", "D"]:  # increase angle
-            self.selected_drone.angle += config.DRONE_ANGLE_INCREMENT
+            self.selected_drone.angle += self._config.drone_angle_increment
             self.selected_drone.angle = self.selected_drone.angle % 360
 
         elif key_pressed in ["w", "W"]:  # increase speed
-            self.selected_drone.speed += config.DRONE_SPEED_INCREMENT
+            self.selected_drone.speed += self._config.drone_speed_increment
 
         elif key_pressed in ["s", "S"]:  # decrease speed
-            self.selected_drone.speed -= config.DRONE_SPEED_INCREMENT
+            self.selected_drone.speed -= self._config.drone_speed_increment
 
     def detect_drone_click(self, position):
         """Handles drones selection in the simulation."""
         click_coords_to_map = (
-            self.environment.width / config.DRAW_SIZE * position[0],
+            self.environment.width / self._config.draw_size * position[0],
             self.environment.height
-            / config.DRAW_SIZE
-            * (config.DRAW_SIZE - position[1]),
+            / self._config.draw_size
+            * (self._config.draw_size - position[1]),
         )
         entities_distance = [
             euclidean_distance(drone.coords, click_coords_to_map)
@@ -123,12 +104,12 @@ class Simulator:
         closest_drone_coords = clicked_drone.coords
         dron_coords_to_screen = (
             closest_drone_coords[0]
-            * config.DRAW_SIZE
+            * self._config.draw_size
             / self.environment.width,
-            config.DRAW_SIZE
+            self._config.draw_size
             - (
                 closest_drone_coords[1]
-                * config.DRAW_SIZE
+                * self._config.draw_size
                 / self.environment.width
             ),
         )
@@ -145,7 +126,7 @@ class Simulator:
         self.selected_drone = clicked_drone
 
     def __setup_plotting(self):
-        if config.PLOT_SIM or config.SAVE_PLOT:
+        if self._config.plot_sim or self._config.save_plot:
             self.draw_manager = pp_draw.PathPlanningDrawer(
                 self.environment, self, borders=True
             )
@@ -160,7 +141,7 @@ class Simulator:
 
         if self.drone_coo is None:
             self.path_manager = PathManager(
-                config.FIXED_TOURS_DIR + "RANDOM_missions", self.sim_seed
+                self._config.fixed_tours_dir + "RANDOM_missions", self.sim_seed
             )
 
         self.environment = Environment(
@@ -202,11 +183,11 @@ class Simulator:
     def __plot(self, cur_step):
         """Plot the simulation"""
 
-        if cur_step % config.SKIP_SIM_STEP != 0:
+        if cur_step % self._config.skip_sim_step != 0:
             return
 
-        if config.WAIT_SIM_STEP > 0:
-            time.sleep(config.WAIT_SIM_STEP)
+        if self._config.wait_sim_step > 0:
+            time.sleep(self._config.wait_sim_step)
 
         self.draw_manager.grid_plot()
         self.draw_manager.borders_plot()
@@ -226,7 +207,7 @@ class Simulator:
         self.draw_manager.draw_obstacles()
         self.draw_manager.draw_target(self.target_coods)
         self.draw_manager.update(
-            save=config.SAVE_PLOT,
+            save=self._config.save_plot,
             filename=self.simulation_name() + str(cur_step) + ".png",
         )
 
@@ -240,7 +221,7 @@ class Simulator:
                 self.environment.detect_collision(drone)
                 drone.move()
 
-            if config.SAVE_PLOT or config.PLOT_SIM:
+            if self._config.save_plot or self._config.plot_sim:
                 self.__plot(cur_step)
 
     def print_metrics(self):

@@ -61,16 +61,16 @@ class PathPlanningDrawer:
         stddraw.setPenRadius(0.002)
 
         for i in range(
-            self.simulator.grid_cell_size,
-            self.width,
-            self.simulator.grid_cell_size,
+            int(self.simulator.grid_cell_size),  # Hack: fix later
+            int(self.width),
+            int(self.simulator.grid_cell_size),
         ):
             stddraw.line(i, 0, i, self.height)
 
         for j in range(
-            self.simulator.grid_cell_size,
-            self.height,
-            self.simulator.grid_cell_size,
+            int(self.simulator.grid_cell_size),  # Hack: fix later
+            int(self.width),
+            int(self.simulator.grid_cell_size),
         ):
             stddraw.line(0, j, self.width, j)
         self.__reset_pen()
@@ -115,7 +115,7 @@ class PathPlanningDrawer:
         self.__reset_pen()
 
         if (
-            config.PLOT_TRAJECTORY_NEXT_TARGET
+            config.SimConfig().plot_trajectory_next_target  # Hack: Fix later.
             and not self.simulator.free_movement
         ):
             self.__draw_next_target(drone.coords, drone.next_target())
