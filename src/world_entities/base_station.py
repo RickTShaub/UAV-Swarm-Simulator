@@ -1,10 +1,11 @@
+from src.interfaces.simulation import ISimulator
 from src.world_entities.entity import SimulatedEntity
 from src.world_entities.antenna import AntennaEquippedDevice
 
 
 class BaseStation(SimulatedEntity, AntennaEquippedDevice):
 
-    def __init__(self, coords, com_range, simulator):
+    def __init__(self, coords, com_range, simulator: ISimulator):
         SimulatedEntity.__init__(self, id(self), coords, simulator)
         AntennaEquippedDevice.__init__(self)
 

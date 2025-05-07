@@ -1,16 +1,23 @@
+from src.interfaces.simulation import ISimulator
 from src.drawing import stddraw
 from src.world_entities.environment import Environment
-from src.utilities import config, utilities
+from src.utilities import config
 from collections import defaultdict
 import numpy as np
 
 
 class PathPlanningDrawer:
 
-    def __init__(self, env : Environment, simulator, borders=False, padding=25):
-        """ init the path plannind drawer """
-        self.width =  env.width
-        self.height =  env.height
+    def __init__(
+        self,
+        env: Environment,
+        simulator: ISimulator,
+        borders=False,
+        padding=25,
+    ):
+        """init the path plannind drawer"""
+        self.width = env.width
+        self.height = env.height
         self.borders = borders
         self.simulator = simulator
         stddraw.setXscale(0 - padding, self.width + padding)
@@ -19,16 +26,18 @@ class PathPlanningDrawer:
         if self.borders:
             self.borders_plot()
 
-        self.keep_indictor = defaultdict(list)  # list of couples (time stamp, drone)
+        self.keep_indictor = defaultdict(
+            list
+        )  # list of couples (time stamp, drone)
 
     def __channel_to_depot(self):
         stddraw.setPenColor(c=stddraw.LIGHT_GRAY)
         stddraw.setPenRadius(0.0025)
-        stddraw.line(self.width/2, self.height, self.width/2, 0)
+        stddraw.line(self.width / 2, self.height, self.width / 2, 0)
         self.__reset_pen()
 
     def save(self, filename):
-        """ save the current plot """
+        """save the current plot"""
         stddraw.save(filename)
 
     def borders_plot(self):
@@ -41,7 +50,7 @@ class PathPlanningDrawer:
         self.__reset_pen()
 
     def grid_plot(self):
-        """ Plots the tassellation of the area."""
+        """Plots the tassellation of the area."""
         if not self.simulator.grid_cell_size > 0:
             return
 
@@ -51,10 +60,18 @@ class PathPlanningDrawer:
         stddraw.setPenColor(c=stddraw.VERY_LIGHT_GRAY)
         stddraw.setPenRadius(0.002)
 
-        for i in range(self.simulator.grid_cell_size, self.width, self.simulator.grid_cell_size):
+        for i in range(
+            self.simulator.grid_cell_size,
+            self.width,
+            self.simulator.grid_cell_size,
+        ):
             stddraw.line(i, 0, i, self.height)
 
-        for j in range(self.simulator.grid_cell_size, self.height, self.simulator.grid_cell_size):
+        for j in range(
+            self.simulator.grid_cell_size,
+            self.height,
+            self.simulator.grid_cell_size,
+        ):
             stddraw.line(0, j, self.width, j)
         self.__reset_pen()
 
@@ -63,16 +80,18 @@ class PathPlanningDrawer:
         stddraw.setPenRadius(0.0055)
 
     def midpoint_line(self, startx, starty, endx, endy):
-        return np.asarray([(startx + endx)/2, (starty + endy)/2])
+        return np.asarray([(startx + endx) / 2, (starty + endy) / 2])
 
     def draw_obstacles(self):
-        """ Spawns random obstacle segments in the map. """
+        """Spawns random obstacle segments in the map."""
         stddraw.setPenColor(c=stddraw.RED)
         stddraw.setPenRadius(0.002)
 
         for i in range(self.simulator.n_obstacles):
             # generation is done only at the beginning
-            startx, starty, endx, endy = self.simulator.environment.obstacles[i]
+            startx, starty, endx, endy = self.simulator.environment.obstacles[
+                i
+            ]
             stddraw.line(startx, starty, endx, endy)
 
         self.__reset_pen()
@@ -81,7 +100,7 @@ class PathPlanningDrawer:
         coords = drone.coords
         if drone.buffer_length() > 0:  # change color when find a packet
             stddraw.setPenColor(c=stddraw.GREEN)
-        else:     
+        else:
             stddraw.setPenColor(c=stddraw.BLACK)
         stddraw.setPenRadius(0.0055)
         stddraw.point(coords[0], coords[1])
@@ -95,7 +114,10 @@ class PathPlanningDrawer:
 
         self.__reset_pen()
 
-        if config.PLOT_TRAJECTORY_NEXT_TARGET and not self.simulator.is_free_movement():
+        if (
+            config.PLOT_TRAJECTORY_NEXT_TARGET
+            and not self.simulator.free_movement
+        ):
             self.__draw_next_target(drone.coords, drone.next_target())
 
     def __validate_rew(self, drone, cur_step):
@@ -137,26 +159,30 @@ class PathPlanningDrawer:
             for ts, drone_in, r in self.keep_indictor[k]:
                 if drone == drone_in:
                     # red for all rewards except those evaluated every delta
-                    if k in ["r.dmo", "r.dbr"]: stddraw.setPenColor(c=stddraw.MAGENTA)
-                    else: stddraw.setPenColor(c=stddraw.RED)
+                    if k in ["r.dmo", "r.dbr"]:
+                        stddraw.setPenColor(c=stddraw.MAGENTA)
+                    else:
+                        stddraw.setPenColor(c=stddraw.RED)
 
-                    stddraw.text(coords[0] + 30, coords[1] + 30, k + " " + str(round(r, 3)))
+                    stddraw.text(
+                        coords[0] + 30,
+                        coords[1] + 30,
+                        k + " " + str(round(r, 3)),
+                    )
 
                     if cur_step - ts >= 100:
                         self.keep_indictor[k].remove((ts, drone_in, r))
 
-    def update(self, rate=1, 
-                save=False, show=True,
-                filename=None):
-        """ update the draw """
+    def update(self, rate=1, save=False, show=True, filename=None):
+        """update the draw"""
 
         if show:
             stddraw.show(self.simulator, rate)
         if save:
-            assert(filename is not None)
+            assert filename is not None
             self.save(filename)
         stddraw.clear()
-        
+
     def draw_event(self, event):
         coords = event.coords
         stddraw.setPenRadius(0.0055)
@@ -180,7 +206,11 @@ class PathPlanningDrawer:
         # draw the buffer size
         stddraw.setPenRadius(0.0125)
         stddraw.setPenColor(c=stddraw.BLACK)
-        stddraw.text(depot.coords[0], depot.coords[1]+100, "pk: " + str(len(depot.buffer)))
+        stddraw.text(
+            depot.coords[0],
+            depot.coords[1] + 100,
+            "pk: " + str(len(depot.buffer)),
+        )
 
     def draw_target(self, target_coords):
         for i, (startx, starty) in enumerate(target_coords):
@@ -212,7 +242,12 @@ class PathPlanningDrawer:
 
         for coord in cells:
             stddraw.setPenColor(c=stddraw.CYAN)
-            stddraw.filledRectangle(coord[0] * size_cell, coord[1] * size_cell, size_cell, size_cell)
+            stddraw.filledRectangle(
+                coord[0] * size_cell,
+                coord[1] * size_cell,
+                size_cell,
+                size_cell,
+            )
             self.__reset_pen()
 
     def __draw_next_target(self, drone_coo, target):
@@ -233,15 +268,35 @@ class PathPlanningDrawer:
         stddraw.setPenColor(c=stddraw.BLACK)
 
         # index
-        stddraw.text(drone.coords[0], drone.coords[1] + (drone.com_range / 2.0), "id: " + str(drone.identifier))
+        stddraw.text(
+            drone.coords[0],
+            drone.coords[1] + (drone.com_range / 2.0),
+            "id: " + str(drone.identifier),
+        )
 
     def draw_simulation_info(self, cur_step, max_steps):
         TEXT_LEFT = 60
         TEXT_TOP = 30
 
-        stddraw.text(TEXT_LEFT + 20, self.height - TEXT_TOP, str(cur_step) + "/" + str(max_steps))
-        #if self.simulator.is_free_movement():
-        stddraw.text(TEXT_LEFT + 20, self.height - TEXT_TOP*2, "drone: " + str(self.simulator.selected_drone.identifier))
-        stddraw.text(TEXT_LEFT + 20, self.height - TEXT_TOP*3, "speed: " + str(self.simulator.selected_drone.speed))
-        stddraw.text(TEXT_LEFT + 20, self.height - TEXT_TOP*4, "angle: " + str(self.simulator.selected_drone.angle))
+        stddraw.text(
+            TEXT_LEFT + 20,
+            self.height - TEXT_TOP,
+            str(cur_step) + "/" + str(max_steps),
+        )
+        # if self.simulator.is_free_movement():
+        stddraw.text(
+            TEXT_LEFT + 20,
+            self.height - TEXT_TOP * 2,
+            "drone: " + str(self.simulator.selected_drone.identifier),
+        )
+        stddraw.text(
+            TEXT_LEFT + 20,
+            self.height - TEXT_TOP * 3,
+            "speed: " + str(self.simulator.selected_drone.speed),
+        )
+        stddraw.text(
+            TEXT_LEFT + 20,
+            self.height - TEXT_TOP * 4,
+            "angle: " + str(self.simulator.selected_drone.angle),
+        )
         self.__reset_pen()
